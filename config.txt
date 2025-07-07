@@ -1,0 +1,11 @@
+# Python app settings
+API_ENDPOINT=https://apis.therefor.in/api/ingest-sensor-data
+
+# Access Point config
+SETUP_AP=true
+AP_SSID=ESP32_Network
+AP_PASSWORD=therefor123
+
+# External Wi-Fi (wlan1)
+WIFI_SSID=My_Hotspot
+WIFI_PASSWORD=mysecretpass
