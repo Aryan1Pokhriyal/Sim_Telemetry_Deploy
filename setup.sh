@@ -58,18 +58,48 @@ pip install -r requirements.txt
 echo "Creating required files..."
 touch incoming.txt to_send.txt ledger.txt logs.txt
 
-# === Startup Script ===
-cat <<EOF > start_project.sh
+# # === Startup Script ===
+# cat <<EOF > start_project.sh
+# #!/bin/bash
+# cd "$PROJECT_DIR"
+# source venv/bin/activate
+# python3 main.py >> logs.txt 2>&1
+# EOF
+# chmod +x start_project.sh
+
+# # === Cron Autostart ===
+# echo "Adding startup to crontab..."
+# (crontab -l 2>/dev/null | grep -v 'start_project.sh'; echo "@reboot $PROJECT_DIR/start_project.sh") | crontab -
+
+# === Create Boot Startup Script ===
+cat <<EOF > startup_boot.sh
 #!/bin/bash
+export DISPLAY=:0
 cd "$PROJECT_DIR"
+
+# Bring up Access Point again (in case it's lost on boot)
+if [[ "$SETUP_AP" == "true" ]]; then
+  nmcli connection up "$AP_SSID" || true
+fi
+
+# Reconnect to external Wi-Fi on wlan1
+if [[ -n "$WIFI_SSID" && -n "$WIFI_PASSWORD" ]]; then
+  nmcli device wifi connect "$WIFI_SSID" password "$WIFI_PASSWORD" ifname wlan1 || true
+fi
+
+# Restart MQTT broker
+sudo systemctl restart mosquitto
+
+# Run Python app
 source venv/bin/activate
 python3 main.py >> logs.txt 2>&1
 EOF
-chmod +x start_project.sh
+
+chmod +x startup_boot.sh
 
 # === Cron Autostart ===
-echo "Adding startup to crontab..."
-(crontab -l 2>/dev/null | grep -v 'start_project.sh'; echo "@reboot $PROJECT_DIR/start_project.sh") | crontab -
+echo "Adding boot script to crontab..."
+(crontab -l 2>/dev/null | grep -v 'startup_boot.sh'; echo "@reboot $PROJECT_DIR/startup_boot.sh") | crontab -
 
 # === Connect wlan1 to external Wi-Fi if specified ===
 if [[ -n "$WIFI_SSID" && -n "$WIFI_PASSWORD" ]]; then
